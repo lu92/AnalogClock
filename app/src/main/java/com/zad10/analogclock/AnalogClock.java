@@ -1,46 +1,31 @@
 package com.zad10.analogclock;
 
-import android.content.BroadcastReceiver;
 import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.res.Resources;
 import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.drawable.Drawable;
-import android.os.CountDownTimer;
-import android.os.Handler;
 import android.text.format.Time;
 import android.util.AttributeSet;
 import android.view.View;
 
-import java.util.TimeZone;
-
 public class AnalogClock extends View {
-    public AnalogClock(Context context) {
-        super(context);
-        // TODO Auto-generated constructor stub
-    }
 
     private Time mCalendar;
-
     private Drawable mHourHand;
     private Drawable mMinuteHand;
     private Drawable mSecondHand;
     private Drawable mDial;
-
     private int mDialWidth;
     private int mDialHeight;
-
     private boolean mAttached;
-
-    private final Handler mHandler = new Handler();
     private float mMinutes;
     private float mHour;
     private boolean mChanged;
+    private Context mContext;
 
-
-    Context mContext;
+    boolean mSeconds = false;
+    float mSecond = 0;
 
     public AnalogClock(Context context, AttributeSet attrs) {
         this(context, attrs, 0);
@@ -54,21 +39,13 @@ public class AnalogClock extends View {
                 context.obtainStyledAttributes(
                         attrs, R.styleable.AnalogClock, defStyle, 0);
         mContext = context;
-        // mDial = a.getDrawable(com.android.internal.R.styleable.AnalogClock_dial);
-        // if (mDial == null) {
+
         mDial = r.getDrawable(R.drawable.clock_dial);
-        // }
 
-        //  mHourHand = a.getDrawable(com.android.internal.R.styleable.AnalogClock_hand_hour);
-        //  if (mHourHand == null) {
         mHourHand = r.getDrawable(R.drawable.clock_hour);
-        //  }
 
-        //   mMinuteHand = a.getDrawable(com.android.internal.R.styleable.AnalogClock_hand_minute);
-        //   if (mMinuteHand == null) {
         mMinuteHand = r.getDrawable(R.drawable.clock_minute);
         mSecondHand = r.getDrawable(R.drawable.clockgoog_minute);
-        //   }
 
         mCalendar = new Time();
 
@@ -79,35 +56,12 @@ public class AnalogClock extends View {
     @Override
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
-
-        if (!mAttached) {
-            mAttached = true;
-            IntentFilter filter = new IntentFilter();
-
-            filter.addAction(Intent.ACTION_TIME_TICK);
-            filter.addAction(Intent.ACTION_TIME_CHANGED);
-            filter.addAction(Intent.ACTION_TIMEZONE_CHANGED);
-
-            getContext().registerReceiver(mIntentReceiver, filter, null, mHandler);
-        }
-
-        // NOTE: It's safe to do these after registering the receiver since the receiver always runs
-        // in the main thread, therefore the receiver can't run before this method returns.
-
-        // The time zone may have changed while the receiver wasn't registered, so update the Time
-        mCalendar = new Time();
-
-        // Make sure we update to the current time
-        onTimeChanged();
-        counter.start();
     }
 
     @Override
     protected void onDetachedFromWindow() {
         super.onDetachedFromWindow();
         if (mAttached) {
-            counter.cancel();
-            getContext().unregisterReceiver(mIntentReceiver);
             mAttached = false;
         }
     }
@@ -155,8 +109,8 @@ public class AnalogClock extends View {
         if (seconds) {
             mSeconds = false;
         }
-        int availableWidth = 800;
-        int availableHeight = 800;
+        int availableWidth = 600;
+        int availableHeight = 600;
 
         int x = availableWidth / 2;
         int y = availableHeight / 2;
@@ -218,60 +172,12 @@ public class AnalogClock extends View {
         }
     }
 
-    MyCount counter = new MyCount(10000, 1000);
 
-    public class MyCount extends CountDownTimer {
-        public MyCount(long millisInFuture, long countDownInterval) {
-            super(millisInFuture, countDownInterval);
-        }
-
-        @Override
-        public void onFinish() {
-            counter.start();
-        }
-
-        @Override
-        public void onTick(long millisUntilFinished) {
-            mCalendar.setToNow();
-
-            int hour = mCalendar.hour;
-            int minute = mCalendar.minute;
-            int second = mCalendar.second;
-
-            mSecond = 6.0f * second;
-            mSeconds = true;
-            //mChanged = true;
-            AnalogClock.this.invalidate();
-            //Toast.makeText(mContext, "text", Toast.LENGTH_LONG).show();
-        }
-    }
-
-    boolean mSeconds = false;
-    float mSecond = 0;
-
-    private void onTimeChanged() {
-        mCalendar.setToNow();
-
-        int hour = mCalendar.hour;
-        int minute = mCalendar.minute;
-        int second = mCalendar.second;
-
+    public void setTime(int hour, int minute, int second) {
         mMinutes = minute + second / 60.0f;
         mHour = hour + mMinutes / 60.0f;
+        mSecond = 6.0f * second;
+            mSeconds = true;
         mChanged = true;
     }
-
-    private final BroadcastReceiver mIntentReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            if (intent.getAction().equals(Intent.ACTION_TIMEZONE_CHANGED)) {
-                String tz = intent.getStringExtra("time-zone");
-                mCalendar = new Time(TimeZone.getTimeZone(tz).getID());
-            }
-
-            onTimeChanged();
-
-            invalidate();
-        }
-    };
 }
